@@ -26,7 +26,17 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
     const classCollections = client.db("Sports-Camp360").collection("classes");
-    
+    const instructorCollections = client.db("Sports-Camp360").collection("instructors");
+
+    app.get('/classes', async(req, res)=> {
+        const result = await classCollections.find().toArray();
+        res.send(result);
+    });
+
+    app.get('/instructors', async(req, res) => {
+      const result = await instructorCollections.find().toArray();
+      res.send(result);
+    })
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
