@@ -30,17 +30,24 @@ async function run() {
     const instructorCollections = client.db("Sports-Camp360").collection("instructors");
     const testimonialCollections = client.db("Sports-Camp360").collection('testimonials');
 
-    app.get('/classes', async(req, res)=> {
-        const result = await classCollections.find().toArray();
-        res.send(result);
+    app.get('/classes', async (req, res) => {
+      const email = req.query.email;
+      let query = {}
+      
+      if(req.query?.email){
+        query = {email};
+      }
+      
+      const result = await classCollections.find(query).toArray();
+      res.send(result);
     });
 
-    app.get('/instructors', async(req, res) => {
+    app.get('/instructors', async (req, res) => {
       const result = await instructorCollections.find().toArray();
       res.send(result);
     })
 
-    app.get('/testimonials', async(req,res)=>{
+    app.get('/testimonials', async (req, res) => {
       const result = await testimonialCollections.find().toArray();
       res.send(result);
     })
@@ -56,10 +63,10 @@ async function run() {
 run().catch(console.dir);
 
 
-app.get('/', (req, res)=> {
-    res.send('Sports camp is running...');
+app.get('/', (req, res) => {
+  res.send('Sports camp is running...');
 })
 
-app.listen(port, ()=> {
-    console.log(`Sports camp is running on port ${port}`)
+app.listen(port, () => {
+  console.log(`Sports camp is running on port ${port}`)
 })
