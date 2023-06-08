@@ -25,8 +25,10 @@ async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
+
     const classCollections = client.db("Sports-Camp360").collection("classes");
     const instructorCollections = client.db("Sports-Camp360").collection("instructors");
+    const testimonialCollections = client.db("Sports-Camp360").collection('testimonials');
 
     app.get('/classes', async(req, res)=> {
         const result = await classCollections.find().toArray();
@@ -35,6 +37,11 @@ async function run() {
 
     app.get('/instructors', async(req, res) => {
       const result = await instructorCollections.find().toArray();
+      res.send(result);
+    })
+
+    app.get('/testimonials', async(req,res)=>{
+      const result = await testimonialCollections.find().toArray();
       res.send(result);
     })
 
