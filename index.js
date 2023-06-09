@@ -104,9 +104,26 @@ async function run() {
     // student area
     app.post('/selected', async(req, res)=> {
       const selectedItem = req.body;
-      console.log(selectedItem);
-      
+
       const result = await selectedCollections.insertOne(selectedItem);
+      res.send(result);
+    })
+
+
+    app.get('/selected', verifyJWT, async(req, res)=> {
+      let query = {};
+      if(req.query?.email){
+        query = {studentEmail: req.query?.email};
+      }
+
+      const result = await selectedCollections.find(query).toArray();
+      res.send(result);
+    })
+
+    app.delete('/selected/:id', async(req, res) => {
+      const id = req.params.id;
+      const query = {_id: new ObjectId(id)};
+      const result = await selectedCollections.deleteOne(query);
       res.send(result);
     })
 
