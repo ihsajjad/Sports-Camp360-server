@@ -60,23 +60,37 @@ async function run() {
       res.send({token});
     })
 
-    // sending classes data
-    app.get('/classes', verifyJWT, async (req, res) => {
+    // sending All classes data
+    app.get('/classes', async (req, res) => {
+      
+      const result = await classCollections.find().toArray();
+      res.send(result);
+    });
+
+    // sending classes data for individual instructor
+    app.get('/my-classes', verifyJWT, async (req, res) => {
       const email = req.query?.email;
       const decodedEmail = req.decoded?.email;
       let query = {}
       
       if(req.query?.email){
+        if(email !== decodedEmail){
+          return res.status(401).send({error: true, message: 'Unauthorized Access'})
+        }
         query = {email};
       }
 
-      if(email !== decodedEmail){
-        return res.status(401).send({error: true, message: 'Unauthorized Access'})
-      }
-      
       const result = await classCollections.find(query).toArray();
       res.send(result);
     });
+
+    app.post('/add-new-class', async(req, res)=> {
+      const newClass = req.body;
+      console.log(newClass);
+      
+      const result = await classCollections.insertOne(newClass);
+      res.send(result);
+    })
 
     app.get('/instructors', async (req, res) => {
       const result = await instructorCollections.find().toArray();
