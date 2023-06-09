@@ -50,6 +50,7 @@ async function run() {
     const classCollections = client.db("Sports-Camp360").collection("classes");
     const instructorCollections = client.db("Sports-Camp360").collection("instructors");
     const testimonialCollections = client.db("Sports-Camp360").collection('testimonials');
+    const selectedCollections = client.db("Sports-Camp360").collection('selected');
 
     // JWT token
     app.post('/jwt', (req, res)=> {
@@ -94,10 +95,18 @@ async function run() {
     // delete class api for instructor
     app.delete('/my-classes/:id', async(req, res)=> {
       const id = req.params.id;
-      console.log(id);
 
       const query = {_id : new ObjectId(id)};
       const result = await classCollections.deleteOne(query);
+      res.send(result);
+    })
+
+    // student area
+    app.post('/selected', async(req, res)=> {
+      const selectedItem = req.body;
+      console.log(selectedItem);
+      
+      const result = await selectedCollections.insertOne(selectedItem);
       res.send(result);
     })
 
