@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
+const stripe = require('stripe')(process.env.PAYMENT_SECRET_KEY);
 var jwt = require('jsonwebtoken');
 const port = process.env.PORT || 5000;
 const app = express();
@@ -23,10 +24,10 @@ const verifyJWT = (req, res, next) => {
     if(error){
       return res.status(403).send({error: true, message: 'Forbidden Access'})
     }
-    req.decoded = decoded;
+   req.decoded = decoded;
+   next();
   })
 
-  next();
 }
 
 
@@ -51,6 +52,7 @@ async function run() {
     const instructorCollections = client.db("Sports-Camp360").collection("instructors");
     const testimonialCollections = client.db("Sports-Camp360").collection('testimonials');
     const selectedCollections = client.db("Sports-Camp360").collection('selected');
+    const paymentCollections = client.db("Sports-Camp360").collection('payments');
 
     // JWT token
     app.post('/jwt', (req, res)=> {
@@ -73,6 +75,7 @@ async function run() {
       const email = req.query?.email;
       const decodedEmail = req.decoded?.email;
       let query = {}
+      
       
       if(req.query?.email){
         if(email !== decodedEmail){
@@ -109,11 +112,17 @@ async function run() {
       res.send(result);
     })
 
-
+    // Selected classes for individual user 
     app.get('/selected', verifyJWT, async(req, res)=> {
+      const email = req.query?.email;
+      const decodedEmail = req.decoded?.email;
       let query = {};
+      
       if(req.query?.email){
-        query = {studentEmail: req.query?.email};
+        if(email !== decodedEmail){
+          return res.status(401).send({error: true, message: 'Unauthorized Access'})
+        }
+        query = {studentEmail: email};
       }
 
       const result = await selectedCollections.find(query).toArray();
@@ -127,7 +136,7 @@ async function run() {
       res.send(result);
     })
 
-    app.get('/instructors', async (req, res) => {
+    app.get('/instructors', async(req, res) => {
       const result = await instructorCollections.find().toArray();
       res.send(result);
     })
@@ -136,6 +145,23 @@ async function run() {
       const result = await testimonialCollections.find().toArray();
       res.send(result);
     })
+
+    // Create payment intent
+    app.post('/create-payment-intent', verifyJWT, async(req, res)=>{
+      const {price} = req.body;
+      const amount = price * 100;
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: 'usd',
+        payment_method_types: ['card']
+      });
+      
+      res.send({
+        clientSecret: paymentIntent.client_secret
+      })
+    })
+
+    
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
