@@ -65,8 +65,8 @@ async function run() {
 
     // sending All classes data
     app.get('/classes', async (req, res) => {
-      
-      const result = await classCollections.find().toArray();
+      const query = {status: 'Approved'}
+      const result = await classCollections.find(query).toArray();
       res.send(result);
     });
 
@@ -161,8 +161,19 @@ async function run() {
       })
     })
 
+    // Payment APIs
     
-
+    app.get('/payments', async(req, res)=> {
+      
+      const result = await paymentCollections.find().toArray();
+      res.send(result);
+    })
+    
+    app.post('/payments', async(req, res)=> {
+      const payment = req.body;
+      const result = await paymentCollections.insertOne(payment);
+      res.send(result);
+    })
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
