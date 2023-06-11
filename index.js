@@ -77,7 +77,7 @@ async function run() {
     }
 
     // Saving users data 
-    app.post('/users', verifyJWT, async(req, res)=>{
+    app.post('/users', async(req, res)=>{
       const user = req.body;
       console.log(user);
 
@@ -90,6 +90,40 @@ async function run() {
       }
 
       const result = await userCollections.insertOne(user);
+      res.send(result);
+    })
+
+
+    // menage user api for admin
+    app.get('/menage-users', async(req, res)=>{
+      const result = await userCollections.find().toArray();
+      res.send(result);
+    })
+
+    // delete user
+    app.delete('/menage-users/:id', async(req, res)=>{
+      const id = req.params.id;
+
+      const query = {_id: new ObjectId(id)};
+      const result = await userCollections.deleteOne(query);
+      res.send(result);
+    })
+
+    // make admin api
+    app.patch('/make-admin/:id', async(req, res)=>{
+      const id = req.params.id;
+      const query = {_id: new ObjectId(id)};
+
+      const result = await userCollections.updateOne(query, {$set: {role: 'admin'}});
+      res.send(result);
+    })
+
+    // make instructor api
+    app.patch('/make-instructor/:id', async(req, res)=>{
+      const id = req.params.id;
+      const query = {_id: new ObjectId(id)};
+
+      const result = await userCollections.updateOne(query, {$set: {role: 'instructor'}});
       res.send(result);
     })
 
