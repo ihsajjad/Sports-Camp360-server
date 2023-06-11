@@ -53,6 +53,8 @@ async function run() {
     const testimonialCollections = client.db("Sports-Camp360").collection('testimonials');
     const selectedCollections = client.db("Sports-Camp360").collection('selected');
     const paymentCollections = client.db("Sports-Camp360").collection('payments');
+    const userCollections = client.db("Sports-Camp360").collection('users');
+
 
     // JWT token
     app.post('/jwt', (req, res)=> {
@@ -63,13 +65,61 @@ async function run() {
       res.send({token});
     })
 
+    // Admin verification middleware
+    const verifyAdmin = async(req, res, next) => {
+      const email = req.decoded.email;
+      const query = {email: email};
+      const user = await userCollections.findOne(query);
+      if(user?.role !== 'admin') {
+        return res.status(403).send({error: true, message: 'forbidden access'});
+      }
+      next();
+    }
+
+    // Saving users data 
+    app.post('/users', verifyJWT, async(req, res)=>{
+      const user = req.body;
+      console.log(user);
+
+      const query = {email: user.email};
+
+      // Checking user 
+      const existingUser = await userCollections.findOne(query);
+      if(existingUser){
+        return res.send({message: 'User already exist'});
+      }
+
+      const result = await userCollections.insertOne(user);
+      res.send(result);
+    })
+
+    // Checking admin 
+    app.get('/users/admin/:email', verifyJWT, async(req, res) => {
+      const email = req.params.email;
+
+      if(req.decoded.email !== email){
+        res.send({admin: false});
+      }
+
+      const query = {email: email};
+      const user = await userCollections.findOne(query);
+      const result = {admin: user?.role === 'admin'};
+      res.send(result);
+    })
+
     // sending All classes data
     app.get('/classes', async (req, res) => {
 
-      // let query = {status: 'Approved'}
-      let query = {}
+      let query = {status: 'Approved'}
 
       const result = await classCollections.find(query).toArray();
+      res.send(result);
+    });
+
+    // menage classes for admin
+    app.get('/menage-classes', verifyJWT, async (req, res) => {
+
+      const result = await classCollections.find().toArray();
       res.send(result);
     });
     
@@ -192,7 +242,7 @@ async function run() {
       res.send(result);
     })
 
-    app.get('/enrolledClasses', async(req, res)=> {
+    app.get('/enrolledClasses', verifyJWT, async(req, res)=> {
       const payedClasses = req.body;
       console.log(payedClasses);
 
