@@ -65,11 +65,14 @@ async function run() {
 
     // sending All classes data
     app.get('/classes', async (req, res) => {
-      const query = {status: 'Approved'}
+
+      // let query = {status: 'Approved'}
+      let query = {}
+
       const result = await classCollections.find(query).toArray();
       res.send(result);
     });
-
+    
     // sending classes data for individual instructor
     app.get('/my-classes', verifyJWT, async (req, res) => {
       const email = req.query?.email;
@@ -136,6 +139,15 @@ async function run() {
       res.send(result);
     })
 
+    app.get('/enrolled-classes/:id', async(req, res)=> {
+      const id = req.params.id;
+
+      const query = {_id: new ObjectId(id)};
+      const result = await selectedCollections.findOne(query);
+
+      res.send(result);
+    })
+
     app.get('/instructors', async(req, res) => {
       const result = await instructorCollections.find().toArray();
       res.send(result);
@@ -161,11 +173,16 @@ async function run() {
       })
     })
 
-    // Payment APIs
+    // Payment APIs for student
     
     app.get('/payments', async(req, res)=> {
+      let query = {};
+
+      if(req.query?.email){
+        query = {"payment.email" : req.query?.email}
+      }
       
-      const result = await paymentCollections.find().toArray();
+      const result = await paymentCollections.find(query).sort({ "payment.date": 1 }).toArray();
       res.send(result);
     })
     
@@ -174,6 +191,30 @@ async function run() {
       const result = await paymentCollections.insertOne(payment);
       res.send(result);
     })
+
+    app.get('/enrolledClasses', async(req, res)=> {
+      const payedClasses = req.body;
+      console.log(payedClasses);
+
+    })
+
+    // ------------------Admin area----------------
+    // for updating class status
+    app.patch('/classes/:id', async(req, res)=> {
+      const id = req.params.id;
+      const {status} = req.body;
+
+      const updatedClass = {
+        $set :{ status}
+      }
+      const query = {_id: new ObjectId(id)};
+
+      const result = await classCollections.updateOne(query, updatedClass)
+
+      res.send(result);
+    })
+
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
