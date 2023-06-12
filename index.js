@@ -56,6 +56,8 @@ async function run() {
     const userCollections = client.db("Sports-Camp360").collection('users');
 
 
+    // --------------Start Verification Area -----------
+
     // JWT token
     app.post('/jwt', (req, res)=> {
       const user = req.body;
@@ -75,6 +77,9 @@ async function run() {
       }
       next();
     }
+// --------------Start Verification Area -----------
+
+    // ---------------- Start User Area-----------------
 
     // Saving users data 
     app.post('/users', async(req, res)=>{
@@ -93,70 +98,81 @@ async function run() {
       res.send(result);
     })
 
-
-    // menage user api for admin
-    app.get('/menage-users', async(req, res)=>{
-      const result = await userCollections.find().toArray();
-      res.send(result);
-    })
-
-    // delete user
-    app.delete('/menage-users/:id', async(req, res)=>{
-      const id = req.params.id;
-
-      const query = {_id: new ObjectId(id)};
-      const result = await userCollections.deleteOne(query);
-      res.send(result);
-    })
-
-    // make admin api
-    app.patch('/make-admin/:id', async(req, res)=>{
-      const id = req.params.id;
-      const query = {_id: new ObjectId(id)};
-
-      const result = await userCollections.updateOne(query, {$set: {role: 'admin'}});
-      res.send(result);
-    })
-
-    // make instructor api
-    app.patch('/make-instructor/:id', async(req, res)=>{
-      const id = req.params.id;
-      const query = {_id: new ObjectId(id)};
-
-      const result = await userCollections.updateOne(query, {$set: {role: 'instructor'}});
-      res.send(result);
-    })
-
-    // Checking admin 
-    app.get('/users/admin/:email', verifyJWT, async(req, res) => {
-      const email = req.params.email;
-
-      if(req.decoded.email !== email){
-        res.send({admin: false});
-      }
-
-      const query = {email: email};
-      const user = await userCollections.findOne(query);
-      const result = {admin: user?.role === 'admin'};
-      res.send(result);
-    })
-
-    // sending All classes data
+    // All classes data
     app.get('/classes', async (req, res) => {
 
-      let query = {status: 'Approved'}
+      let query = {status: 'Approved'};
+      const options = {
+        sort: {enrolledStudents: -1}
+      }
 
-      const result = await classCollections.find(query).toArray();
+      const result = await classCollections.find(query, options).toArray();
       res.send(result);
     });
 
-    // menage classes for admin
-    app.get('/menage-classes', verifyJWT, async (req, res) => {
-
-      const result = await classCollections.find().toArray();
+    // All instructors
+    app.get('/instructors', async(req, res) => {
+      const result = await instructorCollections.find().toArray();
       res.send(result);
-    });
+    })
+
+    // All Testimonials
+    app.get('/testimonials', async (req, res) => {
+      const result = await testimonialCollections.find().toArray();
+      res.send(result);
+    })
+// ------------------- End User Area--------------------
+
+
+    // --------------Start Student Area ----------------
     
+    // Selected classes for individual student 
+    app.get('/selected', verifyJWT, async(req, res)=> {
+      const email = req.query?.email;
+      const decodedEmail = req.decoded?.email;
+      let query = {};
+      
+      if(req.query?.email){
+        if(email !== decodedEmail){
+          return res.status(401).send({error: true, message: 'Unauthorized Access'})
+        }
+        query = {studentEmail: email};
+      }
+
+      const result = await selectedCollections.find(query).toArray();
+      res.send(result);
+    })
+
+    // Classes that student enrolled
+    app.get('/enrolled-classes/:id', async(req, res)=> {
+      const id = req.params.id;
+
+      const query = {_id: new ObjectId(id)};
+      const result = await selectedCollections.findOne(query);
+
+      res.send(result);
+    })
+
+    // To save selected classes
+    app.post('/selected', async(req, res)=> {
+      const selectedItem = req.body;
+
+      const result = await selectedCollections.insertOne(selectedItem);
+      res.send(result);
+    })
+
+    // To delete selected Class
+    app.delete('/selected/:id', async(req, res) => {
+      const id = req.params.id;
+      const query = {_id: new ObjectId(id)};
+      const result = await selectedCollections.deleteOne(query);
+      res.send(result);
+    })
+// ------------------End Student Area ------------------
+
+
+    // ------------Start Instructor Area --------------
+
     // sending classes data for individual instructor
     app.get('/my-classes', verifyJWT, async (req, res) => {
       const email = req.query?.email;
@@ -175,6 +191,7 @@ async function run() {
       res.send(result);
     });
 
+    // To create a new class
     app.post('/add-new-class', async(req, res)=> {
       const newClass = req.body;
 
@@ -190,57 +207,83 @@ async function run() {
       const result = await classCollections.deleteOne(query);
       res.send(result);
     })
+// ----------------End Instructor Area -----------------
 
-    // student area
-    app.post('/selected', async(req, res)=> {
-      const selectedItem = req.body;
 
-      const result = await selectedCollections.insertOne(selectedItem);
-      res.send(result);
-    })
+    // ----------------Start Admin Area ----------------
+    
+    // Checking admin 
+    app.get('/users/admin/:email', verifyJWT, async(req, res) => {
+      const email = req.params.email;
 
-    // Selected classes for individual user 
-    app.get('/selected', verifyJWT, async(req, res)=> {
-      const email = req.query?.email;
-      const decodedEmail = req.decoded?.email;
-      let query = {};
-      
-      if(req.query?.email){
-        if(email !== decodedEmail){
-          return res.status(401).send({error: true, message: 'Unauthorized Access'})
-        }
-        query = {studentEmail: email};
+      if(req.decoded.email !== email){
+        res.send({admin: false});
       }
 
-      const result = await selectedCollections.find(query).toArray();
+      const query = {email: email};
+      const user = await userCollections.findOne(query);
+      const result = {admin: user?.role === 'admin'};
       res.send(result);
     })
 
-    app.delete('/selected/:id', async(req, res) => {
+    // menage classes for admin
+    app.get('/menage-classes', verifyJWT, async (req, res) => {
+
+      const result = await classCollections.find().toArray();
+      res.send(result);
+    });
+
+    // menage user api 
+    app.get('/menage-users', async(req, res)=>{
+      const result = await userCollections.find().toArray();
+      res.send(result);
+    })
+
+    // delete user
+    app.delete('/menage-users/:id', async(req, res)=>{
+      const id = req.params.id;
+
+      const query = {_id: new ObjectId(id)};
+      const result = await userCollections.deleteOne(query);
+      res.send(result);
+    })
+
+    // To make Admin
+    app.patch('/make-admin/:id', async(req, res)=>{
       const id = req.params.id;
       const query = {_id: new ObjectId(id)};
-      const result = await selectedCollections.deleteOne(query);
+
+      const result = await userCollections.updateOne(query, {$set: {role: 'admin'}});
       res.send(result);
     })
 
-    app.get('/enrolled-classes/:id', async(req, res)=> {
+    // To make Instructor
+    app.patch('/make-instructor/:id', async(req, res)=>{
       const id = req.params.id;
-
       const query = {_id: new ObjectId(id)};
-      const result = await selectedCollections.findOne(query);
 
+      const result = await userCollections.updateOne(query, {$set: {role: 'instructor'}});
       res.send(result);
     })
 
-    app.get('/instructors', async(req, res) => {
-      const result = await instructorCollections.find().toArray();
-      res.send(result);
-    })
+    // To update class status
+    app.patch('/classes/:id', async(req, res)=> {
+      const id = req.params.id;
+      const {status, feedback} = req.body;
+      console.log(status, feedback)
+      const updatedClass = {
+        $set :{ status, feedback}
+      }
+      const query = {_id: new ObjectId(id)};
 
-    app.get('/testimonials', async (req, res) => {
-      const result = await testimonialCollections.find().toArray();
+      const result = await classCollections.updateOne(query, updatedClass)
+
       res.send(result);
     })
+// -------------------End Admin Area -------------------
+
+    
+    // -------------- Start Payment Area --------------
 
     // Create payment intent
     app.post('/create-payment-intent', verifyJWT, async(req, res)=>{
@@ -258,7 +301,6 @@ async function run() {
     })
 
     // Payment APIs for student
-    
     app.get('/payments', async(req, res)=> {
       let query = {};
 
@@ -269,34 +311,14 @@ async function run() {
       const result = await paymentCollections.find(query).sort({ "payment.date": 1 }).toArray();
       res.send(result);
     })
-    
+
+    // To collect payment data
     app.post('/payments', async(req, res)=> {
       const payment = req.body;
       const result = await paymentCollections.insertOne(payment);
       res.send(result);
     })
-
-    app.get('/enrolledClasses', verifyJWT, async(req, res)=> {
-      const payedClasses = req.body;
-      console.log(payedClasses);
-
-    })
-
-    // ------------------Admin area----------------
-    // for updating class status
-    app.patch('/classes/:id', async(req, res)=> {
-      const id = req.params.id;
-      const {status} = req.body;
-
-      const updatedClass = {
-        $set :{ status}
-      }
-      const query = {_id: new ObjectId(id)};
-
-      const result = await classCollections.updateOne(query, updatedClass)
-
-      res.send(result);
-    })
+// ------------------ End Payment Area -----------------
 
 
     // Send a ping to confirm a successful connection
