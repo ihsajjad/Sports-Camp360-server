@@ -73,7 +73,7 @@ async function run() {
       const query = { email: email };
 
       const user = await userCollections.findOne(query);
-      console.log('Admin verification middleware', user);
+      
 
       if (user?.role !== 'admin') {
         return res.status(403).send({ error: true, message: 'forbidden access' });
@@ -157,12 +157,15 @@ async function run() {
     })
 
     // Individual user
-    app.get('/users/:email', async(req, res)=>{
-      const email = req.params.email;
-      const query = {email};
-      console.log(query);
+    app.get('/users/user', async(req, res)=>{
+      const email = req.query?.email;
+      let query = {};
 
+      if(req.query?.email){
+        query = {email: email}
+      }
       const user = await userCollections.findOne(query);
+      
       res.send(user);
     })
 
@@ -261,7 +264,7 @@ async function run() {
     app.patch('/classes/updateSeats/:id', async (req, res) => {
       const id = req.params.id;
 
-      const query = { _id: new ObjectId(id) };
+      const query = { _id: new ObjectId(id)};
 
       const classDocument = await classCollections.findOne(query);
       const currentAvailableSeats = classDocument?.availableSeats;
